@@ -32,14 +32,18 @@ int main()
     const std::string& dirPath = "../../../GoRecords/2005/";
     auto fileNames = GetFilesByExtension(dirPath, "sgf");
 
+    const std::string& inputsPath = "inputs.dat";
+    const std::string& outputsPath = "outputs.dat";
+
     SGFParser parser;
+    DataExtractor extractor(inputsPath, outputsPath);
     for (auto& file : fileNames)
     {
         std::string filePath = dirPath + file;
         std::cout << "Parsing file: " << filePath << std::endl;
 
-        // TODO
         parser.Parse(filePath);
+        extractor.Generate(parser.Moves());
     }
 
     return 0;
