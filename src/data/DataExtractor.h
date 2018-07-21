@@ -56,31 +56,30 @@ private:
 
     void Save(const Board& board, const Move& nextMove)
     {
-        SaveInputs(board);
+        SaveInputs(board, nextMove.Col);
         SaveOutputs(nextMove);
     }
 
-    void SaveInputs(const Board& board)
+    void SaveInputs(const Board& board, int colourToMove)
     {
-        inputs << board.ToString();
+        for (int r = 0; r < 19; r++)
+        {
+            std::string row;
+            for (int c = 0; c < 19; c++)
+            {
+                Colour col = board.PointColour(19*r+c);
+                row += col == colourToMove ? 'P' : col != None ? 'O' : '.';
+            }
+
+            inputs << row;
+        }
+
         inputs << std::endl;
     }
 
     void SaveOutputs(const Move& move)
     {
-        std::string out;
-        for (int i = 0; i < 19; i++) out += std::string(19, '.');
-
-        // Invert the y.
-        int x = move.Coord % 19;
-        int y = move.Coord / 19;
-        int invCoord = x + 19*(18 - y);
-        out[invCoord] = move.Col == Black ? 'B' : 'W';
-
-        for (int i = 18; i > 0; i--) out.insert(i*19, "\n");
-
-        outputs << out << std::endl;
-        outputs << std::endl;
+        outputs << move.Coord << std::endl;
     }
 };
 
