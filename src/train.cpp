@@ -66,11 +66,46 @@ int main()
     assert(trainPositions.size() == trainLabels.size());
     assert(testPositions.size() == testLabels.size());
 
-    // Construct the network.
-    network<sequential> net;
+    // Construct the network and specify the optimiser to use.
+    network<sequential> nn;
+    adagrad optimiser;
 
-    net << conv(23, 23, 5, 3, 6) << tiny_dnn::activation::tanh()
-        << fc(19*19*6, 361);
+    nn << conv(23, 23, 5, 3, 6) << tiny_dnn::activation::tanh()
+       << fc(19*19*6, 361);
+
+    // Setup a callback to report progress and begin training.
+    // This is taken verbatim from the tiny-dnn mnist example.
+    tiny_dnn::progress_display disp(trainPositions.size());
+    tiny_dnn::timer t;
+    int minibatchSize = 10;
+    int numEpochs     = 30;
+
+    optimiser.alpha *= static_cast<tiny_dnn::float_t>(std::sqrt(minibatchSize));
+
+    // create callback
+    auto on_enumerate_epoch = [&]() {
+        std::cout << t.elapsed() << "s elapsed." << std::endl;
+        tiny_dnn::result res = nn.test(testPositions, testLabels);
+        std::cout << res.num_success << "/" << res.num_total << std::endl;
+
+        disp.restart(trainPositions.size());
+        t.restart();
+    };
+
+    auto on_enumerate_minibatch = [&]() { disp += minibatchSize; };
+
+    // training
+    nn.train<tiny_dnn::mse>(optimiser, trainPositions, trainLabels, minibatchSize,
+                            numEpochs, on_enumerate_minibatch,
+                            on_enumerate_epoch);
+
+    std::cout << "Training complete" << std::endl;
+
+    // test and show results
+    nn.test(testPositions, testLabels).print_detail(std::cout);
+
+    // save nnwork model & trained weights
+    nn.save("go-model");
 
     return 0;
 }
