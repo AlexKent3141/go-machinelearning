@@ -15,7 +15,7 @@ data: $(obj_data)
 	$(CXX) $^ -o $(APP_DATA)
 
 train: $(obj_train)
-	$(CXX) $^ -o $(APP_TRAIN)
+	$(CXX) $^ -pthread -o $(APP_TRAIN)
 
 .PHONY: clean
 clean:
