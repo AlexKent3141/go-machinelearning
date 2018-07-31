@@ -14,8 +14,8 @@
 #include <vector>
 
 #ifndef CNN_NO_SERIALIZATION
-#include <cereal/types/tuple.hpp>
-#include <cereal/types/utility.hpp>
+#include "cereal/types/tuple.hpp"
+#include "cereal/types/utility.hpp"
 #endif
 
 #include "layers/layer.h"

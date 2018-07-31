@@ -26,18 +26,15 @@
 
 #include "../config.h"
 
-// Don't support serialisation initially.
-#define CNN_NO_SERIALIZATION
-
 #ifndef CNN_NO_SERIALIZATION
-#include <cereal/archives/binary.hpp>
-#include <cereal/archives/json.hpp>
-#include <cereal/archives/portable_binary.hpp>
-#include <cereal/cereal.hpp>
-#include <cereal/types/deque.hpp>
-#include <cereal/types/polymorphic.hpp>
-#include <cereal/types/string.hpp>
-#include <cereal/types/vector.hpp>
+#include "../cereal/archives/binary.hpp"
+#include "../cereal/archives/json.hpp"
+#include "../cereal/archives/portable_binary.hpp"
+#include "../cereal/cereal.hpp"
+#include "../cereal/types/deque.hpp"
+#include "../cereal/types/polymorphic.hpp"
+#include "../cereal/types/string.hpp"
+#include "../cereal/types/vector.hpp"
 #endif
 
 #include "aligned_allocator.h"
