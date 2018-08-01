@@ -27,6 +27,15 @@ void BoardRenderer::SetOutput(const std::vector<double>& output)
 {
     std::lock_guard<std::mutex> lk(_m);
     _output = output;
+
+    // Normalise the outputs.
+    double largest = 0;
+    for (auto out : _output)
+    {
+        if (out > largest) largest = out;
+    }
+
+    for (size_t i = 0; i < _output.size(); i++) _output[i] /= largest;
 }
 
 std::vector<Coord> BoardRenderer::GetCoords(int w, int h) const
@@ -103,6 +112,32 @@ void BoardRenderer::DrawBoard(SDL_Surface* target, const std::vector<Coord>& poi
 
 void BoardRenderer::DrawOutput(SDL_Surface* target, const std::vector<Coord>& points) const
 {
+    const int BoardSize = 19;
+
+    SDL_PixelFormat* fmt = target->format;
+    const int HotColR = 255;
+    const int HotColG = 0;
+    const int HotColB = 0;
+
+    const int ColdColR = 0;
+    const int ColdColG = 0;
+    const int ColdColB = 255;
+
+    // Draw the heatmap.
+    int col;
+    int rad = 0.4 * (points[1].first - points[0].first);
+    for (int i = 0; i < BoardSize*BoardSize; i++)
+    {
+        // Check that the point is empty first.
+        if (_board->PointColour(i) == None)
+        {
+            if (_output[i] > 0.1)
+            {
+                col = SmoothCol(fmt, HotColR, HotColG, HotColB, ColdColR, ColdColG, ColdColB, _output[i]);
+                DrawCircle(target, col, points[i], rad);
+            }
+        }
+    }
 }
 
 // There is no built in method for drawing lines so we do it manually.
@@ -159,3 +194,18 @@ void BoardRenderer::DrawCircle(SDL_Surface* target, int col, const Coord& c, int
         }
     }
 }
+
+int BoardRenderer::SmoothCol(const SDL_PixelFormat* fmt, int r1, int g1, int b1, int r2, int g2, int b2, double s) const
+{
+    int r = r1*s + r2*(1-s);
+    int g = g1*s + g2*(1-s);
+    int b = b1*s + b2*(1-s);
+    return SDL_MapRGB(fmt, r, g, b);
+}
+
+
+
+
+
+
+

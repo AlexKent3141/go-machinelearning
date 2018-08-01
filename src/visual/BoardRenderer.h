@@ -35,6 +35,8 @@ private:
 
     void DrawLine(SDL_Surface*, int, const Coord&, const Coord&) const;
     void DrawCircle(SDL_Surface*, int, const Coord&, int) const;
+
+    int SmoothCol(const SDL_PixelFormat*, int, int, int, int, int, int, double) const;
 };
 
 #endif // __BOARD_RENDERER_H__

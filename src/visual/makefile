@@ -1,6 +1,6 @@
 APP_VISUAL=visual.out
 CXXFLAGS=-Wall -std=c++14 -O3
-LDFLAGS=-lSDL
+LDFLAGS=-lpthread -lSDL
 
 src=$(shell find ../data/ -type f -name '*.cpp')
 src += $(shell find ../core/ -type f -name '*.cpp')

@@ -3,6 +3,7 @@
 // see what it predicts for the next move.
 
 #include "BoardRenderer.h"
+#include "Network.h"
 #include "../data/SGFParser.h"
 #include "../core/Move.h"
 #include "SDL/SDL.h"
@@ -11,6 +12,7 @@
 #include <vector>
 
 BoardRenderer renderer;
+Network net;
 std::vector<Move> moves;
 int moveIndex = 0;
 
@@ -54,6 +56,7 @@ void ShowWindow()
                         Board board(19);
                         UpdateBoard(&board);
                         renderer.SetBoard(board);
+                        renderer.SetOutput(net.GetOutput(board));
                     }
                     else if (event.key.keysym.sym == SDLK_RIGHT && moveIndex < moves.size() - 1)
                     {
@@ -61,6 +64,7 @@ void ShowWindow()
                         Board board(19);
                         UpdateBoard(&board);
                         renderer.SetBoard(board);
+                        renderer.SetOutput(net.GetOutput(board));
                     }
 
                     break;
@@ -92,6 +96,8 @@ int main(int argc, char** argv)
     SGFParser parser;
     parser.Parse("test.sgf");
     moves = parser.Moves();
+
+    net.Load("go-model");
 
     ShowWindow();
 
