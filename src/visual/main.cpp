@@ -14,11 +14,11 @@
 BoardRenderer renderer;
 Network net;
 std::vector<Move> moves;
-int moveIndex = 0;
+size_t moveIndex = 0;
 
 void UpdateBoard(Board* board)
 {
-    for (int i = 0; i < moveIndex; i++)
+    for (size_t i = 0; i < moveIndex; i++)
     {
         board->MakeMove(moves[i]);
     }

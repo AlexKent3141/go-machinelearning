@@ -68,30 +68,24 @@ std::vector<Coord> BoardRenderer::GetCoords(int w, int h) const
 
 void BoardRenderer::DrawGrid(SDL_Surface* target, const std::vector<Coord>& points) const
 {
-    const int BoardSize = 19;
-
     SDL_PixelFormat* fmt = target->format;
     const int BlackCol = SDL_MapRGB(fmt, 0, 0, 0);
+    const int BoardSize = 19;
 
     // Draw the grid lines between points.
-    for (int r = 0; r < BoardSize; r++)
+    for (int i = 0; i < BoardSize; i++)
     {
-        DrawLine(target, BlackCol, points[BoardSize*r], points[BoardSize*r + BoardSize - 1]);
-    }
-
-    for (int c = 0; c < BoardSize; c++)
-    {
-        DrawLine(target, BlackCol, points[c], points[BoardSize*(BoardSize-1) + c]);
+        DrawLine(target, BlackCol, points[BoardSize*i], points[BoardSize*(i+1) - 1]);
+        DrawLine(target, BlackCol, points[i], points[BoardSize*(BoardSize-1) + i]);
     }
 }
 
 void BoardRenderer::DrawBoard(SDL_Surface* target, const std::vector<Coord>& points) const
 {
-    const int BoardSize = 19;
-
     SDL_PixelFormat* fmt = target->format;
     const int BlackCol = SDL_MapRGB(fmt, 0, 0, 0);
     const int WhiteCol = SDL_MapRGB(fmt, 255, 255, 255);
+    const int BoardSize = 19;
 
     // Draw the stones.
     Colour col;
@@ -112,8 +106,6 @@ void BoardRenderer::DrawBoard(SDL_Surface* target, const std::vector<Coord>& poi
 
 void BoardRenderer::DrawOutput(SDL_Surface* target, const std::vector<Coord>& points) const
 {
-    const int BoardSize = 19;
-
     SDL_PixelFormat* fmt = target->format;
     const int HotColR = 255;
     const int HotColG = 0;
@@ -123,6 +115,12 @@ void BoardRenderer::DrawOutput(SDL_Surface* target, const std::vector<Coord>& po
     const int ColdColG = 0;
     const int ColdColB = 255;
 
+    const int BoardSize = 19;
+
+    SDL_Surface* output = SDL_CreateRGBSurface(0, target->w, target->h, 32, 0, 0, 0, 0);
+    SDL_SetAlpha(output, SDL_SRCALPHA, 150);
+    SDL_SetColorKey(output, SDL_SRCCOLORKEY, SDL_MapRGB(output->format, 0, 0, 0));
+
     // Draw the heatmap.
     int col;
     int rad = 0.4 * (points[1].first - points[0].first);
@@ -131,13 +129,14 @@ void BoardRenderer::DrawOutput(SDL_Surface* target, const std::vector<Coord>& po
         // Check that the point is empty first.
         if (_board->PointColour(i) == None)
         {
-            if (_output[i] > 0.1)
-            {
-                col = SmoothCol(fmt, HotColR, HotColG, HotColB, ColdColR, ColdColG, ColdColB, _output[i]);
-                DrawCircle(target, col, points[i], rad);
-            }
+            col = SmoothCol(fmt, HotColR, HotColG, HotColB, ColdColR, ColdColG, ColdColB, _output[i]);
+            DrawCircle(output, col, points[i], rad);
         }
     }
+
+    SDL_BlitSurface(output, NULL, target, NULL);
+
+    SDL_FreeSurface(output);
 }
 
 // There is no built in method for drawing lines so we do it manually.
@@ -202,10 +201,3 @@ int BoardRenderer::SmoothCol(const SDL_PixelFormat* fmt, int r1, int g1, int b1,
     int b = b1*s + b2*(1-s);
     return SDL_MapRGB(fmt, r, g, b);
 }
-
-
-
-
-
-
-
