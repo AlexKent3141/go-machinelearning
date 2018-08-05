@@ -22,10 +22,7 @@ std::vector<double> Network::GetOutput(const Board& board)
     vec_t pred = _nn.predict(inputs);
 
     std::vector<double> outputs;
-    for (const auto& out : pred)
-    {
-        outputs.push_back(out);
-    }
+    for (float out : pred) outputs.push_back(out);
 
     return outputs;
 }

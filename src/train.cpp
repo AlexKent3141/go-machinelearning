@@ -69,24 +69,49 @@ int main()
     // Construct the network and specify the optimiser to use.
     network<sequential> nn;
     adagrad optimiser;
+    optimiser.alpha = 0.001;
 
-    nn << conv(23, 23, 5, 3, 6) << tiny_dnn::activation::tanh()
-       << fc(19*19*6, 361);
+    nn << conv(23, 23, 5, 3, 12)
+       << tiny_dnn::activation::relu()
+       << conv(19, 19, 3, 12, 12, padding::same)
+       << tiny_dnn::activation::relu()
+       << conv(19, 19, 3, 12, 12)
+       << tiny_dnn::activation::relu()
+       << fc(17*17*12, 19*19)
+       << tiny_dnn::activation::softmax();
+
+  //nn.load("go-model");
+
+  //tiny_dnn::result res = nn.test(testPositions, testLabels);
+  //std::cout << res.num_success << "/" << res.num_total << std::endl;
+
+  //return 0;
 
     // Setup a callback to report progress and begin training.
     // This is taken verbatim from the tiny-dnn mnist example.
     tiny_dnn::progress_display disp(trainPositions.size());
     tiny_dnn::timer t;
     int minibatchSize = 10;
-    int numEpochs     = 30;
+    int numEpochs     = 1000;
 
     optimiser.alpha *= static_cast<tiny_dnn::float_t>(std::sqrt(minibatchSize));
+
+    double bestRatio = 0;
 
     // create callback
     auto on_enumerate_epoch = [&]() {
         std::cout << t.elapsed() << "s elapsed." << std::endl;
         tiny_dnn::result res = nn.test(testPositions, testLabels);
         std::cout << res.num_success << "/" << res.num_total << std::endl;
+
+        double ratio = (double)res.num_success / res.num_total;
+        std::cout << ratio << " " << bestRatio << std::endl;
+        if (ratio > bestRatio)
+        {
+            std::cout << "Promoted" << std::endl;
+            nn.save("go-model");
+            bestRatio = ratio;
+        }
 
         disp.restart(trainPositions.size());
         t.restart();
@@ -95,9 +120,10 @@ int main()
     auto on_enumerate_minibatch = [&]() { disp += minibatchSize; };
 
     // training
-    nn.train<tiny_dnn::mse>(optimiser, trainPositions, trainLabels, minibatchSize,
-                            numEpochs, on_enumerate_minibatch,
-                            on_enumerate_epoch);
+    nn.train<tiny_dnn::cross_entropy_multiclass>(
+        optimiser, trainPositions, trainLabels, minibatchSize,
+        numEpochs, on_enumerate_minibatch,
+        on_enumerate_epoch);
 
     std::cout << "Training complete" << std::endl;
 

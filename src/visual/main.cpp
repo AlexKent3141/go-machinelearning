@@ -24,6 +24,14 @@ void UpdateBoard(Board* board)
     }
 }
 
+void UpdateRenderer()
+{
+    Board board(19);
+    UpdateBoard(&board);
+    renderer.SetBoard(board);
+    renderer.SetOutput(net.GetOutput(board));
+}
+
 // This method initialises the window.
 void ShowWindow()
 {
@@ -53,18 +61,12 @@ void ShowWindow()
                     if (event.key.keysym.sym == SDLK_LEFT && moveIndex > 0)
                     {
                         --moveIndex;
-                        Board board(19);
-                        UpdateBoard(&board);
-                        renderer.SetBoard(board);
-                        renderer.SetOutput(net.GetOutput(board));
+                        UpdateRenderer();
                     }
                     else if (event.key.keysym.sym == SDLK_RIGHT && moveIndex < moves.size() - 1)
                     {
                         ++moveIndex;
-                        Board board(19);
-                        UpdateBoard(&board);
-                        renderer.SetBoard(board);
-                        renderer.SetOutput(net.GetOutput(board));
+                        UpdateRenderer();
                     }
 
                     break;
@@ -74,17 +76,19 @@ void ShowWindow()
                     break;
             }
         }
+        else
+        {
+            SDL_Flip(screen);
 
-        SDL_Flip(screen);
+            SDL_FillRect(screen, NULL, BoardCol);
 
-        SDL_FillRect(screen, NULL, BoardCol);
+            // Show the current board state.
+            renderer.Render(screen);
 
-        // Show the current board state.
-        renderer.Render(screen);
-
-        // Wait for a short period.
-        const int TimeDelay = 100;
-        SDL_Delay(TimeDelay);
+            // Wait for a short period.
+            const int TimeDelay = 100;
+            SDL_Delay(TimeDelay);
+        }
     }
 
     SDL_FreeSurface(screen);
