@@ -1,26 +1,28 @@
 #ifndef __NETWORK_H__
 #define __NETWORK_H__
 
-#include "../tiny_dnn/tiny_dnn.h"
-#include "../core/Board.h"
-#include <string>
-#include <vector>
+extern "C"
+{
+    #include "../darknet/darknet.h"
+}
 
-using namespace tiny_dnn;
-using namespace tiny_dnn::layers;
+#include "../core/Board.h"
+#include <vector>
 
 class Network
 {
 public:
-    void Load(const std::string&);
+    ~Network();
+
+    void Load();
 
     // Get the outputs for the specified board state.
     std::vector<double> GetOutput(const Board&);
 
 private:
-    network<sequential> _nn;
+    network* _nn = nullptr;
 
-    vec_t GetInputs(const Board&) const;
+    void GetInputs(const Board&, float*) const;
 };
 
 #endif // __NETWORK_H__

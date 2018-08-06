@@ -1,6 +1,7 @@
 APP_DATA=data.out
 APP_TRAIN=train.out
 CXXFLAGS=-Wall -std=c++14 -O3
+LDFLAGS=-Llib -ldarknet -lpthread
 
 src=$(shell find src/data/ -type f -name '*.cpp')
 src += $(shell find src/core/ -type f -name '*.cpp')
@@ -15,7 +16,7 @@ data: $(obj_data)
 	$(CXX) $^ -o $(APP_DATA)
 
 train: $(obj_train)
-	$(CXX) $^ -pthread -o $(APP_TRAIN)
+	$(CXX) $^ -o $(APP_TRAIN) $(LDFLAGS)
 
 .PHONY: clean
 clean:

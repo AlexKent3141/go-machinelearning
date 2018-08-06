@@ -1,76 +1,96 @@
 #ifndef __PREPARE_DATA_H__
 #define __PREPARE_DATA_H__
 
-#include "../tiny_dnn/tiny_dnn.h"
+extern "C"
+{
+    #include "../darknet/darknet.h"
+}
+
+#include <fstream>
+#include <string>
+#include <iostream>
 
 // This file contains functions for parsing the extracted Go position data and preparing it
 // to be used for training.
 
-// A training example consists of the inputs and the known label.
-typedef std::pair<tiny_dnn::vec_t, tiny_dnn::label_t> Example;
-
-inline void AddEmptyRow(tiny_dnn::vec_t& inputs, int padding)
-{
-    for (int i = 0; i < 2*padding+19; i++) inputs.push_back(0);
-}
-
-inline void AddRow(tiny_dnn::vec_t& inputs, const std::string& row, char featureType, int padding)
-{
-    for (int i = 0; i < padding; i++) inputs.push_back(0);
-    for (int i = 0; i < 19; i++) inputs.push_back(row[i] == featureType);
-    for (int i = 0; i < padding; i++) inputs.push_back(0);
-}
-
-inline void AddPlane(tiny_dnn::vec_t& inputs, const std::string& input, char featureType, int padding)
+inline void AddPlane(int p,  float* in, const std::string& input, char featureType, int padding)
 {
     // Add the padded plane for this feature type to the inputs.
-    for (int i = 0; i < padding; i++) AddEmptyRow(inputs, padding);
-    for (int i = 0; i < 19; i++) AddRow(inputs, input.substr(19*i, 19), featureType, padding);
-    for (int i = 0; i < padding; i++) AddEmptyRow(inputs, padding);
+    int paddedRowSize = 2*padding + 19;
+    int paddedPlaneSize = paddedRowSize*paddedRowSize;
+
+    for (int r = 0; r < 19; r++)
+    {
+        for (int c = 0; c < 19; c++)
+        {
+            bool isFeature = input[19*r+c] == featureType;
+            in[paddedPlaneSize*p + (r+padding)*paddedRowSize + padding + c] = isFeature;
+        }
+    }
 }
 
-inline Example GetExample(const std::string& input, size_t label, int padding)
+inline void GetRow(float* in, float* out, const std::string& input, size_t label, int padding)
 {
-    tiny_dnn::vec_t inputs;
-    AddPlane(inputs, input, 'P', padding);
-    AddPlane(inputs, input, 'O', padding);
-    AddPlane(inputs, input, '.', padding);
+    if (in != nullptr)
+    {
+        int p = 0;
+        AddPlane(p++, in, input, 'P', padding);
+        AddPlane(p++, in, input, 'O', padding);
+        AddPlane(p++, in, input, '.', padding);
+    }
 
-    return { inputs, label };
+    if (out != nullptr)
+    {
+        out[label] = 1;
+    }
+}
+inline void GetRow(int i, matrix* in, matrix* out, const std::string& input, size_t label, int padding)
+{
+    GetRow(in->vals[i], out->vals[i], input, label, padding);
 }
 
 // Extract the examples from the specified files and apply the specified padding in x & y.
 // Note: The padding is applied all the way around the board.
-inline std::vector<Example> GetExamples(const std::string& inputsFile, const std::string& labelsFile, int padding)
+inline data GetData(const std::string& inputsFile, const std::string& labelsFile, int padding)
 {
-    std::vector<Example> examples;
     std::ifstream inputs(inputsFile);
     std::ifstream labels(labelsFile);
 
+    const int NumExamples = 276562;
+    const int NumPlanes = 3;
+    int paddedBoardArea = (2*padding + 19)*(2*padding + 19);
+    matrix in = make_matrix(NumExamples, NumPlanes*paddedBoardArea);
+    matrix out = make_matrix(NumExamples, 361);
+
     // The inputs and label for a specified example.
+    int i = 0;
     if (inputs.is_open() && labels.is_open())
     {
-        bool hasExamples = true;
+        bool hasData = true;
         do
         {
             std::string input;
             std::getline(inputs, input);
 
-            hasExamples = input.size() == 361;
-            if (hasExamples)
+            hasData = input.size() == 361;
+            if (hasData)
             {
                 std::string line;
                 std::getline(labels, line);
-                examples.push_back(GetExample(input, std::stoi(line), padding));
+                GetRow(i++, &in, &out, input, std::stoi(line), padding);
             }
         }
-        while (hasExamples);
+        while (hasData);
     }
+
+    data d;
+    d.X = in;
+    d.y = out;
 
     inputs.close();
     labels.close();
 
-    return examples;
+    return d;
 }
 
 #endif // __PREPARE_DATA_H__

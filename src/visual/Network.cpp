@@ -1,33 +1,36 @@
 #include "Network.h"
 #include "../data/PrepareData.h"
 
-void Network::Load(const std::string& filePath)
+Network::~Network()
 {
-    _nn << conv(23, 23, 5, 3, 12)
-        << tiny_dnn::activation::relu()
-        << conv(19, 19, 3, 12, 12, padding::same)
-        << tiny_dnn::activation::relu()
-        << conv(19, 19, 3, 12, 12)
-        << tiny_dnn::activation::relu()
-        << fc(17*17*12, 19*19)
-        << tiny_dnn::activation::softmax();
+    if (_nn != nullptr)
+    {
+        free_network(_nn);
+        _nn = nullptr;
+    }
+}
 
-    _nn.load(filePath);
+void Network::Load()
+{
+    _nn = load_network("net.cfg", "test_weights", 0);
 }
 
 std::vector<double> Network::GetOutput(const Board& board)
 {
     // Feed this board state through the network and capture the outputs.
-    vec_t inputs = GetInputs(board);
-    vec_t pred = _nn.predict(inputs);
+    float* inputs = new float[3*361];
+    GetInputs(board, inputs);
+    float* pred = network_predict(_nn, inputs);
 
     std::vector<double> outputs;
-    for (float out : pred) outputs.push_back(out);
+    for (int i = 0; i < 361; i++) outputs.push_back(pred[i]);
+
+    delete[] inputs;
 
     return outputs;
 }
 
-vec_t Network::GetInputs(const Board& board) const
+void Network::GetInputs(const Board& board, float* inputs) const
 {
     // First convert to the expected string representation then create the feature planes.
     std::string rep;
@@ -44,5 +47,5 @@ vec_t Network::GetInputs(const Board& board) const
         rep += row;
     }
 
-    return GetExample(rep, 0, 2).first;
+    GetRow(inputs, nullptr, rep, 0, 0);
 }

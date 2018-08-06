@@ -101,7 +101,7 @@ int main(int argc, char** argv)
     parser.Parse("test.sgf");
     moves = parser.Moves();
 
-    net.Load("go-model");
+    net.Load();
 
     ShowWindow();
 
