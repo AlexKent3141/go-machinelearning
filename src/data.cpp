@@ -6,9 +6,8 @@
 #include <vector>
 #include <string>
 
-std::vector<std::string> GetFilesByExtension(const std::string& dirPath, const std::string& ext)
+void GetFilesByExtension(const std::string& dirPath, const std::string& ext, int earliestYear, std::vector<std::string>& fileNames)
 {
-    std::vector<std::string> fileNames;
     const size_t extLen = ext.size();
     DIR* dpdf = opendir(dirPath.c_str());
     if (dpdf != nullptr)
@@ -18,31 +17,57 @@ std::vector<std::string> GetFilesByExtension(const std::string& dirPath, const s
         {
             auto fileName = std::string(epdf->d_name);
             if (fileName.size() >= extLen && fileName.substr(fileName.size() - extLen) == ext)
-                fileNames.push_back(std::string(epdf->d_name));
+            {
+                // Check the year.
+                if (stoi(fileName.substr(0, 4)) >= earliestYear)
+                {
+                    fileNames.push_back(dirPath + "/" + fileName);
+                }
+            }
+            else if (epdf->d_type == DT_DIR)
+            {
+                if (epdf->d_name[0] != '.')
+                {
+                    GetFilesByExtension(dirPath + fileName, ext, earliestYear, fileNames);
+                }
+            }
         }
     }
 
     closedir(dpdf);
-
-    return fileNames;
 }
 
-int main()
+// Recursively search the directory and find all sgf files for games that happened after the
+// specified year.
+std::vector<std::string> GetGameFiles(const std::string& dirPath, int earliestYear)
 {
-    const std::string& dirPath = "../../../GoRecords/2005/";
-    auto fileNames = GetFilesByExtension(dirPath, "sgf");
+    std::vector<std::string> files;
+    GetFilesByExtension(dirPath, "sgf", earliestYear, files);
+    return files;
+}
+
+int main(int argc, char** argv)
+{
+    if (argc < 2)
+    {
+        std::cout << "No games folder specified" << std::endl;
+        return -1;
+    }
+
+    auto dir = std::string(argv[1]);
+    auto fileNames = GetGameFiles(dir, 1900);
 
     const std::string& inputsPath = "inputs.dat";
     const std::string& outputsPath = "outputs.dat";
 
     SGFParser parser;
     DataExtractor extractor(inputsPath, outputsPath);
-    for (auto& file : fileNames)
+    for (size_t i = 0; i < fileNames.size(); i++)
     {
-        std::string filePath = dirPath + file;
-        std::cout << "Parsing file: " << filePath << std::endl;
+        std::string file = fileNames[i];
+        std::cout << "Parsing file " << i << "/" << fileNames.size() << " " << file << std::endl;
 
-        parser.Parse(filePath);
+        parser.Parse(file);
         extractor.Generate(parser.Moves());
     }
 

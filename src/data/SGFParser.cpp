@@ -80,7 +80,7 @@ void SGFParser::ParseKeyValuePair(const std::string& key, const std::string& val
     }
     else if (key == KeyKomi)
     {
-        _komi = stof(value);
+        if (value != "?") _komi = stof(value);
     }
     else if (key == KeyResult)
     {
