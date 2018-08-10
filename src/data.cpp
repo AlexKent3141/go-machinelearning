@@ -55,13 +55,10 @@ int main(int argc, char** argv)
     }
 
     auto dir = std::string(argv[1]);
-    auto fileNames = GetGameFiles(dir, 1900);
-
-    const std::string& inputsPath = "inputs.dat";
-    const std::string& outputsPath = "outputs.dat";
+    auto fileNames = GetGameFiles(dir, 1950);
 
     SGFParser parser;
-    DataExtractor extractor(inputsPath, outputsPath);
+    DataExtractor extractor("go_data", fileNames.size());
     for (size_t i = 0; i < fileNames.size(); i++)
     {
         std::string file = fileNames[i];

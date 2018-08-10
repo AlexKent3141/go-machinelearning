@@ -10,12 +10,19 @@ extern "C"
 #include <cassert>
 #include <cstdlib>
 
-int main()
-{
-    srand(time(NULL));
+const std::string& inputFile = "input";
+const std::string& outputFile = "output";
+const std::string& DataExt = ".dat";
 
-    // Read in the example data to use for training & testing.
-    data d = GetData("inputs.dat", "outputs.dat", 0);
+data GetRandomGoData(int maxFileIndex, const std::string& dataFolder)
+{
+    int fileIndex = rand() % maxFileIndex;
+    std::string inputFileName = dataFolder + "/" + inputFile + std::to_string(fileIndex) + DataExt;
+    std::string outputFileName = dataFolder + "/" + outputFile + std::to_string(fileIndex) + DataExt;
+
+    std::cout << "Loading data: " << inputFileName << " " << outputFileName << std::endl;
+
+    data d = GetData(inputFileName, outputFileName);
     std::cout << "Num examples found: " << d.X.rows << std::endl;
     std::cout << "Input columns: " << d.X.cols << std::endl;
     std::cout << "Output columns: " << d.y.cols << std::endl;
@@ -25,26 +32,50 @@ int main()
     randomize_data(d);
     std::cout << "Randomly ordered examples" << std::endl;
 
-    // Split the data into training and testing subsets.
-    data* split = split_data(d, 3, 4);
-    std::cout << "Training examples: " << split[0].X.rows << std::endl;
-    std::cout << "Testing examples: " << split[1].X.rows << std::endl;
-    assert(split[0].X.rows > 0);
-    assert(split[1].X.rows > 0);
+    return d;
+}
+
+// The arguments specify the relative folder and number of the data files.
+int main(int argc, char** argv)
+{
+    srand(time(NULL));
+
+    if (argc < 3)
+    {
+        std::cout << "Missing arguments." << std::endl;
+        std::cout << "Require data folder path and maximum data file index." << std::endl;
+        return -1;
+    }
+
+    std::string dataFolder(argv[1]);
+    int maxFileIndex = atoi(argv[2]);
+
+    // Reserve the last data file for testing.
+    auto inputFileName = dataFolder + "/" + inputFile + std::to_string(maxFileIndex) + DataExt;
+    auto outputFileName = dataFolder + "/" + outputFile + std::to_string(maxFileIndex) + DataExt;
+    std::cout << "Loading test set: " << inputFileName << " " << outputFileName << std::endl;
+    data test = GetData(inputFileName, outputFileName);
+    std::cout << "Num examples found: " << test.X.rows << std::endl;
+    std::cout << "Input columns: " << test.X.cols << std::endl;
+    std::cout << "Output columns: " << test.y.cols << std::endl;
 
     // Construct the network.
-    network* net = load_network("net.cfg", "test_weights", 0);
-    split[0].X.rows -= split[0].X.rows % net->batch;
+    network* net = load_network("net.cfg", NULL/*"test_weights"*/, 0);
 
     // Train.
-    double bestAccuracy = network_accuracy(net, split[1]);
+    double bestAccuracy = network_accuracy(net, test);
     std::cout << "Initial accuracy: " << bestAccuracy << std::endl;
     while (get_current_batch(net) < net->max_batches || net->max_batches == 0)
     {
-        float loss = train_network(net, split[0]);
+        data training = GetRandomGoData(maxFileIndex-1, dataFolder);
+        training.X.rows -= training.X.rows % net->batch;
+
+        float loss = train_network(net, training);
         std::cout << loss << std::endl;
 
-        float testAccuracy = network_accuracy(net, split[1]);
+        free_data(training);
+
+        float testAccuracy = network_accuracy(net, test);
         std::cout << "Test accuracy: " << testAccuracy << std::endl;
         if (testAccuracy > bestAccuracy)
         {
@@ -54,10 +85,7 @@ int main()
         }
     }
 
-    free_data(split[0]);
-    free_data(split[1]);
-    free(split);
-
+    free_data(test);
     free_network(net);
 
     return 0;

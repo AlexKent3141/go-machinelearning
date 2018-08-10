@@ -51,16 +51,22 @@ inline void GetRow(int i, matrix* in, matrix* out, const std::string& input, siz
 
 // Extract the examples from the specified files and apply the specified padding in x & y.
 // Note: The padding is applied all the way around the board.
-inline data GetData(const std::string& inputsFile, const std::string& labelsFile, int padding)
+inline data GetData(const std::string& inputsFile, const std::string& labelsFile, int padding = 0)
 {
+    // Initially find the number of lines in the file.
+    std::string l;
+    int n = 0;
+    std::ifstream test(inputsFile);
+    while (std::getline(test, l)) ++n;
+    test.close();
+
     std::ifstream inputs(inputsFile);
     std::ifstream labels(labelsFile);
 
-    const int NumExamples = 276562;
     const int NumPlanes = 3;
     int paddedBoardArea = (2*padding + 19)*(2*padding + 19);
-    matrix in = make_matrix(NumExamples, NumPlanes*paddedBoardArea);
-    matrix out = make_matrix(NumExamples, 361);
+    matrix in = make_matrix(n, NumPlanes*paddedBoardArea);
+    matrix out = make_matrix(n, 361);
 
     // The inputs and label for a specified example.
     int i = 0;
