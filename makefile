@@ -1,7 +1,13 @@
+GPU=0
+
 APP_DATA=data.out
 APP_TRAIN=train.out
 CXXFLAGS=-Wall -std=c++14 -O3
-LDFLAGS=-Llib -ldarknet -lpthread
+LDFLAGS=-lpthread -Llib -ldarknet
+
+ifeq ($(GPU), 1)
+LDFLAGS+= -L/usr/local/cuda/lib64 -lcuda -lcudart -lcublas -lcurand
+endif
 
 src=$(shell find src/data/ -type f -name '*.cpp')
 src += $(shell find src/core/ -type f -name '*.cpp')

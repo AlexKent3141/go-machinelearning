@@ -68,7 +68,10 @@ private:
             for (int c = 0; c < 19; c++)
             {
                 Colour col = board.PointColour(19*r+c);
-                row += col == colourToMove ? 'P' : col != None ? 'O' : '.';
+                row += col == colourToMove ? 'P'
+                    : col != None ? 'O'
+                    : (board.CheckMove(19*r + c) & Legal) ? '.'
+                    : 'x';
             }
 
             inputs << row;

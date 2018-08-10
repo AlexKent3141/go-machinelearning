@@ -38,6 +38,7 @@ int main()
 
     // Train.
     double bestAccuracy = network_accuracy(net, split[1]);
+    std::cout << "Initial accuracy: " << bestAccuracy << std::endl;
     while (get_current_batch(net) < net->max_batches || net->max_batches == 0)
     {
         float loss = train_network(net, split[0]);

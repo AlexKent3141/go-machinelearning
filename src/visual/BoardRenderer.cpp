@@ -99,7 +99,7 @@ void BoardRenderer::DrawBoard(SDL_Surface* target, const std::vector<Coord>& poi
         }
         else if (col == White)
         {
-            DrawCircle(target, WhiteCol, points[i], rad);
+            DrawCircle(target, WhiteCol, points[i], rad, 2, BlackCol);
         }
     }
 }
@@ -167,7 +167,7 @@ void BoardRenderer::DrawLine(SDL_Surface* target, int col, const Coord& p1, cons
 
 
 // There is no built in method for drawing circles so we do it manually.
-void BoardRenderer::DrawCircle(SDL_Surface* target, int col, const Coord& c, int r) const
+void BoardRenderer::DrawCircle(SDL_Surface* target, int col, const Coord& c, int r, int bw, int bcol) const
 {
     // The idea: iterate over pixels in a square containing the circle.
     // If a pixel is within radius of the circle then colour it.
@@ -177,6 +177,7 @@ void BoardRenderer::DrawCircle(SDL_Surface* target, int col, const Coord& c, int
     int cy = c.second;
 
     int dx, dy;
+    double d;
 
     int w = target->w;
     for (int x = cx - r; x <= cx + r; x++)
@@ -186,9 +187,10 @@ void BoardRenderer::DrawCircle(SDL_Surface* target, int col, const Coord& c, int
             dx = x - cx;
             dy = y - cy;
 
-            if (dx*dx + dy*dy < r*r)
+            d = sqrt(dx*dx + dy*dy);
+            if (d <= r)
             {
-                pixels[w*y+x] = col;
+                pixels[w*y+x] = d > r-bw ? bcol : col;
             }
         }
     }

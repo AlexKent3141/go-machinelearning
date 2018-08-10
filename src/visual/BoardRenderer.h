@@ -34,7 +34,7 @@ private:
     void DrawOutput(SDL_Surface*, const std::vector<Coord>&) const;
 
     void DrawLine(SDL_Surface*, int, const Coord&, const Coord&) const;
-    void DrawCircle(SDL_Surface*, int, const Coord&, int) const;
+    void DrawCircle(SDL_Surface*, int, const Coord&, int, int bw = 0, int bcol = 0) const;
 
     int SmoothCol(const SDL_PixelFormat*, int, int, int, int, int, int, double) const;
 };
