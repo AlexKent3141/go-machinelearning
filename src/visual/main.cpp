@@ -48,6 +48,8 @@ void ShowWindow()
     SDL_PixelFormat* fmt = screen->format;
     const int BoardCol = SDL_MapRGB(fmt, 255, 222, 173);
 
+    UpdateRenderer();
+
     // Handle input from the window.
     SDL_Event event;
     bool quit = false;

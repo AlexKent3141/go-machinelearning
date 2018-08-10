@@ -14,9 +14,8 @@ const std::string& inputFile = "input";
 const std::string& outputFile = "output";
 const std::string& DataExt = ".dat";
 
-data GetRandomGoData(int maxFileIndex, const std::string& dataFolder)
+data GetGoData(int fileIndex, const std::string& dataFolder)
 {
-    int fileIndex = rand() % maxFileIndex;
     std::string inputFileName = dataFolder + "/" + inputFile + std::to_string(fileIndex) + DataExt;
     std::string outputFileName = dataFolder + "/" + outputFile + std::to_string(fileIndex) + DataExt;
 
@@ -60,21 +59,26 @@ int main(int argc, char** argv)
     std::cout << "Output columns: " << test.y.cols << std::endl;
 
     // Construct the network.
-    network* net = load_network("net.cfg", NULL/*"test_weights"*/, 0);
+    network* net = load_network("net.cfg", "test_weights", 0);
 
     // Train.
     double bestAccuracy = network_accuracy(net, test);
     std::cout << "Initial accuracy: " << bestAccuracy << std::endl;
     while (get_current_batch(net) < net->max_batches || net->max_batches == 0)
     {
-        data training = GetRandomGoData(maxFileIndex-1, dataFolder);
-        training.X.rows -= training.X.rows % net->batch;
+        // Iterate over all training data.
+        for (int t = 0; t < maxFileIndex; t++)
+        {
+            data training = GetGoData(t, dataFolder);
+            training.X.rows -= training.X.rows % net->batch;
 
-        float loss = train_network(net, training);
-        std::cout << loss << std::endl;
+            float loss = train_network(net, training);
+            std::cout << loss << std::endl;
 
-        free_data(training);
+            free_data(training);
+        }
 
+        // An epoch has completed - test it!
         float testAccuracy = network_accuracy(net, test);
         std::cout << "Test accuracy: " << testAccuracy << std::endl;
         if (testAccuracy > bestAccuracy)
