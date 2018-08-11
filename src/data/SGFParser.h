@@ -9,7 +9,7 @@ class SGFParser
 public:
     SGFParser();
 
-    void Parse(const std::string&);
+    bool Parse(const std::string&);
 
     int BoardSize() const { return _boardSize; }
     std::vector<Move> Moves() const { return _moves; }
@@ -36,6 +36,10 @@ private:
     const std::string KeyTimeLimit = "TM";
     const std::string KeyCommentary = "GC";
 
+    const std::string KeyAddBlack = "AB";
+    const std::string KeyAddWhite = "AW";
+    const std::string KeyHandicap = "HA";
+
     int _boardSize;
     std::string _fileFormatVersion;
     std::string _blackPlayer, _whitePlayer;
@@ -55,6 +59,7 @@ private:
     std::vector<Move> _moves;
 
     std::string RemoveBrackets(const std::string&) const;
+    std::string RemoveLineBreaks(const std::string&) const;
     void ParseKeyValuePair(const std::string&, const std::string&);
     Move ParseMove(Colour, const std::string&) const;
 };

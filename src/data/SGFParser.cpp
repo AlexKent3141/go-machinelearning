@@ -7,8 +7,9 @@ SGFParser::SGFParser()
 {
 }
 
-void SGFParser::Parse(const std::string& sgf)
+bool SGFParser::Parse(const std::string& sgf)
 {
+    bool validFile = true;
     std::ifstream s(sgf);
 
     // Get all of the data from the file.
@@ -18,22 +19,39 @@ void SGFParser::Parse(const std::string& sgf)
     s.close();
 
     content = RemoveBrackets(content);
+    content = RemoveLineBreaks(content);
 
     // Split by delimiters.
-    const std::string Delims = ";[]\r\n";
+    const std::string Delims = ";[]";
     auto tokens = Utils::GetInstance()->Split(content, Delims);
 
     // Parse each key value pair.
     _moves.clear();
-    for (size_t i = 0; i < tokens.size()/2; i++)
+    for (size_t i = 0; i < tokens.size()/2 && validFile; i++)
     {
-        ParseKeyValuePair(tokens[2*i], tokens[2*i+1]);
+        const std::string& key = tokens[2*i];
+        validFile = key != KeyAddBlack && key != KeyAddWhite && key != KeyHandicap;
+
+        if (validFile) ParseKeyValuePair(tokens[2*i], tokens[2*i+1]);
     }
+
+    return validFile;
 }
 
 std::string SGFParser::RemoveBrackets(const std::string& s) const
 {
     return s.substr(1, s.size()-2);
+}
+
+std::string SGFParser::RemoveLineBreaks(const std::string& s) const
+{
+    const std::string Delims = "\r\n";
+    auto tokens = Utils::GetInstance()->Split(s, Delims);
+
+    std::string res;
+    for (const auto& token : tokens) res += token;
+
+    return res;
 }
 
 void SGFParser::ParseKeyValuePair(const std::string& key, const std::string& value)

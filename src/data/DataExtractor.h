@@ -1,7 +1,6 @@
 #ifndef __DATA_EXTRACTOR_H__
 #define __DATA_EXTRACTOR_H__
 
-#include "SGFParser.h"
 #include "../core/Board.h"
 #include <cassert>
 #include <cstdlib>
@@ -20,9 +19,9 @@ public:
     {
         // The data extractor potentially needs to split the data over multiple files (because
         // there may not be enough RAM available to load all of the data at once when training).
-        const int PositionsPerFile = 500000;
+        const int PositionsPerFile = 100000;
         const int AverageMovesPerGame = 200;
-        int numFilesRequired = ceil((AverageMovesPerGame * (double)numGames) / PositionsPerFile);
+        int numFilesRequired = ceil((8*AverageMovesPerGame*(double)numGames) / PositionsPerFile);
 
         const std::string& InputFile = "input";
         const std::string& OutputFile = "output";
@@ -76,13 +75,76 @@ private:
 
     void Save(const Board& board, const Move& nextMove)
     {
-        int i = rand() % _inputs.size();
-        SaveInputs(board, nextMove.Col, i);
-        SaveOutputs(nextMove, i);
+        std::string input = GetInputString(board, nextMove.Col);
+        int next = nextMove.Coord;
+        for (int i = 1; i <= 8; i++)
+        {
+            int fileToUse = rand() % _inputs.size();
+            SaveInputs(input, fileToUse);
+            SaveOutputs(next, fileToUse);
+
+            //PrintBoard(input, next);
+
+            if (i % 4)
+            {
+                input = Rotate(input);
+                next = Rotate(next);
+            }
+            else
+            {
+                input = Flip(input);
+                next = Flip(next);
+            }
+        }
     }
 
-    void SaveInputs(const Board& board, int colourToMove, int targetIndex)
+    std::string Flip(const std::string& input) const
     {
+        std::string flipped(input);
+        for (int r = 0; r < 19; r++)
+        {
+            for (int c = 0; c < 19; c++)
+            {
+                int i = 19*r + c;
+                flipped[i] = input[Flip(i)];
+            }
+        }
+
+        return flipped;
+    }
+
+    int Flip(int loc) const
+    {
+        int x = loc % 19;
+        int y = loc / 19;
+        return 19*y + (18 - x);
+    }
+
+    std::string Rotate(const std::string& input) const
+    {
+        std::string rotated(input);
+        for (int r = 0; r < 19; r++)
+        {
+            for (int c = 0; c < 19; c++)
+            {
+                int i = 19*r + c;
+                rotated[Rotate(i)] = input[i];
+            }
+        }
+
+        return rotated;
+    }
+
+    int Rotate(int loc) const
+    {
+        int x = loc % 19;
+        int y = loc / 19;
+        return 19*(18-x) + y;
+    }
+
+    std::string GetInputString(const Board& board, int colourToMove)
+    {
+        std::string inputs;
         for (int r = 0; r < 19; r++)
         {
             std::string row;
@@ -95,15 +157,32 @@ private:
                     : 'x';
             }
 
-            _inputs[targetIndex] << row;
+            inputs += row;
         }
 
-        _inputs[targetIndex] << std::endl;
+        return inputs;
     }
 
-    void SaveOutputs(const Move& move, int targetIndex)
+    void SaveInputs(const std::string& input, int targetIndex)
     {
-        _outputs[targetIndex] << move.Coord << std::endl;
+        _inputs[targetIndex] << input << std::endl;
+    }
+
+    void SaveOutputs(int coord, int targetIndex)
+    {
+        _outputs[targetIndex] << coord << std::endl;
+    }
+
+    void PrintBoard(const std::string& input, int next) const
+    {
+        std::string test(input);
+        for (int i = 18; i > 0; i--)
+        {
+            test.insert(19*i, "\n");
+        }
+
+        std::cout << test << std::endl;
+        std::cout << std::endl;
     }
 };
 

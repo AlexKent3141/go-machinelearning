@@ -22,6 +22,8 @@ data GetGoData(int fileIndex, const std::string& dataFolder)
     std::cout << "Loading data: " << inputFileName << " " << outputFileName << std::endl;
 
     data d = GetData(inputFileName, outputFileName);
+    d.shallow = 0;
+
     std::cout << "Num examples found: " << d.X.rows << std::endl;
     std::cout << "Input columns: " << d.X.cols << std::endl;
     std::cout << "Output columns: " << d.y.cols << std::endl;
@@ -50,13 +52,7 @@ int main(int argc, char** argv)
     int maxFileIndex = atoi(argv[2]);
 
     // Reserve the last data file for testing.
-    auto inputFileName = dataFolder + "/" + inputFile + std::to_string(maxFileIndex) + DataExt;
-    auto outputFileName = dataFolder + "/" + outputFile + std::to_string(maxFileIndex) + DataExt;
-    std::cout << "Loading test set: " << inputFileName << " " << outputFileName << std::endl;
-    data test = GetData(inputFileName, outputFileName);
-    std::cout << "Num examples found: " << test.X.rows << std::endl;
-    std::cout << "Input columns: " << test.X.cols << std::endl;
-    std::cout << "Output columns: " << test.y.cols << std::endl;
+    data test = GetGoData(maxFileIndex, dataFolder);
 
     // Construct the network.
     network* net = load_network("net.cfg", "test_weights", 0);
@@ -66,9 +62,9 @@ int main(int argc, char** argv)
     std::cout << "Initial accuracy: " << bestAccuracy << std::endl;
     while (get_current_batch(net) < net->max_batches || net->max_batches == 0)
     {
-        // Iterate over all training data.
         for (int t = 0; t < maxFileIndex; t++)
         {
+            // Get the next training data set.
             data training = GetGoData(t, dataFolder);
             training.X.rows -= training.X.rows % net->batch;
 
@@ -76,16 +72,21 @@ int main(int argc, char** argv)
             std::cout << loss << std::endl;
 
             free_data(training);
-        }
 
-        // An epoch has completed - test it!
-        float testAccuracy = network_accuracy(net, test);
-        std::cout << "Test accuracy: " << testAccuracy << std::endl;
-        if (testAccuracy > bestAccuracy)
-        {
-            save_weights(net, "test_weights");
-            std::cout << "Promoted" << std::endl;
-            bestAccuracy = testAccuracy;
+            // Test whether an improvement has happened.
+            if (t % 10 == 0)
+            {
+                // Test and promote if it's an improvement.
+                std::cout << "Testing..." << std::endl;
+                float testAccuracy = network_accuracy(net, test);
+                std::cout << "Test accuracy: " << testAccuracy << std::endl;
+                if (testAccuracy > bestAccuracy)
+                {
+                    save_weights(net, "test_weights");
+                    std::cout << "Promoted" << std::endl;
+                    bestAccuracy = testAccuracy;
+                }
+            }
         }
     }
 

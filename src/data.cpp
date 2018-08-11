@@ -55,7 +55,7 @@ int main(int argc, char** argv)
     }
 
     auto dir = std::string(argv[1]);
-    auto fileNames = GetGameFiles(dir, 1950);
+    auto fileNames = GetGameFiles(dir, 2000);
 
     SGFParser parser;
     DataExtractor extractor("go_data", fileNames.size());
@@ -64,8 +64,14 @@ int main(int argc, char** argv)
         std::string file = fileNames[i];
         std::cout << "Parsing file " << i << "/" << fileNames.size() << " " << file << std::endl;
 
-        parser.Parse(file);
-        extractor.Generate(parser.Moves());
+        if (parser.Parse(file))
+        {
+            extractor.Generate(parser.Moves());
+        }
+        else
+        {
+            std::cout << "Skipping invalid file" << std::endl;
+        }
     }
 
     return 0;
