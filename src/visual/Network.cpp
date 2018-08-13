@@ -10,9 +10,9 @@ Network::~Network()
     }
 }
 
-void Network::Load()
+void Network::Load(const char* net, const char* weights)
 {
-    _nn = load_network("net.cfg", "test_weights", 0);
+    _nn = load_network((char*)net, (char*)weights, 0);
 }
 
 std::vector<double> Network::GetOutput(const Board& board)

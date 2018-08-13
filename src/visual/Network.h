@@ -14,7 +14,7 @@ class Network
 public:
     ~Network();
 
-    void Load();
+    void Load(const char*, const char*);
 
     // Get the outputs for the specified board state.
     std::vector<double> GetOutput(const Board&);

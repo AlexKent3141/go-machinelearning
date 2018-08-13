@@ -55,12 +55,12 @@ int main(int argc, char** argv)
     data test = GetGoData(maxFileIndex, dataFolder);
 
     // Construct the network.
-    network* net = load_network("net.cfg", "test_weights", 0);
+    network* net = load_network((char*)"net.cfg", (char*)"test_weights", 0);
 
     // Train.
     double bestAccuracy = network_accuracy(net, test);
     std::cout << "Initial accuracy: " << bestAccuracy << std::endl;
-    while (get_current_batch(net) < net->max_batches || net->max_batches == 0)
+    while ((int)get_current_batch(net) < net->max_batches || net->max_batches == 0)
     {
         for (int t = 0; t < maxFileIndex; t++)
         {
@@ -82,7 +82,7 @@ int main(int argc, char** argv)
                 std::cout << "Test accuracy: " << testAccuracy << std::endl;
                 if (testAccuracy > bestAccuracy)
                 {
-                    save_weights(net, "test_weights");
+                    save_weights(net, (char*)"test_weights");
                     std::cout << "Promoted" << std::endl;
                     bestAccuracy = testAccuracy;
                 }

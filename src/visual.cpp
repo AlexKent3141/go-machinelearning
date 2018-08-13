@@ -2,10 +2,10 @@
 // The aim is to be able to step through an SGF file and apply the network to each board state to
 // see what it predicts for the next move.
 
-#include "BoardRenderer.h"
-#include "Network.h"
-#include "../data/SGFParser.h"
-#include "../core/Move.h"
+#include "visual/BoardRenderer.h"
+#include "visual/Network.h"
+#include "data/SGFParser.h"
+#include "core/Move.h"
 #include "SDL/SDL.h"
 #include <iostream>
 #include <string>
@@ -100,12 +100,16 @@ void ShowWindow()
 int main(int argc, char** argv)
 {
     SGFParser parser;
-    parser.Parse("test.sgf");
-    moves = parser.Moves();
-
-    net.Load();
-
-    ShowWindow();
+    if (parser.Parse("src/visual/test.sgf"))
+    {
+        moves = parser.Moves();
+        net.Load("src/visual/net.cfg", "src/visual/test_weights");
+        ShowWindow();
+    }
+    else
+    {
+        std::cout << "Error parsing the SGF file" << std::endl;
+    }
 
     return 0;
 }
