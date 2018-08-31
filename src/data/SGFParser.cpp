@@ -27,12 +27,34 @@ bool SGFParser::Parse(const std::string& sgf)
 
     // Parse each key value pair.
     _moves.clear();
-    for (size_t i = 0; i < tokens.size()/2 && validFile; i++)
-    {
-        const std::string& key = tokens[2*i];
-        validFile = key != KeyAddBlack && key != KeyAddWhite && key != KeyHandicap;
 
-        if (validFile) ParseKeyValuePair(tokens[2*i], tokens[2*i+1]);
+    std::string prevKey;
+    for (const auto& token : tokens)
+    {
+        bool isKey = IsKey(token);
+
+        if (!isKey)
+        {
+            if (prevKey == KeyAddWhite)
+            {
+                _whitePlacements.push_back(token);
+            }
+            else if (prevKey == KeyAddBlack)
+            {
+                _blackPlacements.push_back(token);
+            }
+            else
+            {
+                ParseKeyValuePair(prevKey, token);
+            }
+        }
+        else
+        {
+            prevKey = token;
+        }
+
+        // Not interested in handicap games.
+        validFile |= _handicap == 0;
     }
 
     return validFile;
@@ -56,6 +78,8 @@ std::string SGFParser::RemoveLineBreaks(const std::string& s) const
 
 void SGFParser::ParseKeyValuePair(const std::string& key, const std::string& value)
 {
+    if (value == "" || value == "(" || value == ")") return;
+
     if (key == KeySize)
     {
         _boardSize = stoi(value);
@@ -136,6 +160,22 @@ void SGFParser::ParseKeyValuePair(const std::string& key, const std::string& val
     {
         _commentary += value;
     }
+    else if (key == KeyGameType)
+    {
+        _gameType = stoi(value);
+    }
+    else if (key == KeyHandicap)
+    {
+        _handicap = stoi(value);
+    }
+    else if (key == KeyApplication)
+    {
+        _application = value;
+    }
+    else if (key == KeyComment)
+    {
+        _comments.push_back(value);
+    }
     else
     {
         std::cout << "Unidentified key: " << key << " " << value << std::endl;
@@ -148,4 +188,10 @@ Move SGFParser::ParseMove(Colour col, const std::string& loc) const
     int rank = loc[1] - 97;
     int coord = rank*_boardSize + file;
     return {col, coord, 0};
+}
+
+// Keys consist of one or two uppercase letters.
+bool SGFParser::IsKey(const std::string& key) const
+{
+    return !key.empty() && key.size() < 3 && isupper(key[0]) && isupper(key[key.size()-1]);
 }
