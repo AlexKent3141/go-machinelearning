@@ -1,6 +1,7 @@
 #ifndef __DATA_EXTRACTOR_H__
 #define __DATA_EXTRACTOR_H__
 
+#include "../core/Board.h"
 #include "../core/Move.h"
 #include <cmath>
 #include <vector>
@@ -44,6 +45,28 @@ public:
 protected:
     std::vector<std::ofstream> _inputs;
     std::vector<std::ofstream> _outputs;
+
+    std::string GetInputString(const Board& board, int colourToMove)
+    {
+        std::string inputs;
+        for (int r = 0; r < 19; r++)
+        {
+            std::string row;
+            for (int c = 0; c < 19; c++)
+            {
+                Colour col = board.PointColour(19*r+c);
+                row += col == colourToMove ? 'P'
+                    : col != None ? 'O'
+                    : (board.CheckMove(19*r + c) & Legal) ? '.'
+                    : 'x';
+            }
+
+            inputs += row;
+        }
+
+        return inputs;
+    }
+
 
     std::string Flip(const std::string& input) const
     {

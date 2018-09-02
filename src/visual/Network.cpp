@@ -47,5 +47,5 @@ void Network::GetInputs(const Board& board, float* inputs) const
         rep += row;
     }
 
-    GetRow(inputs, nullptr, rep, 0, 0);
+    GetRow(inputs, nullptr, rep, "", 0);
 }

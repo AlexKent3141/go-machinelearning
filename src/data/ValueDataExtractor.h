@@ -38,8 +38,16 @@ public:
                 if (parser.Parse(tempPath2))
                 {
                     const std::vector<Move>& aftermathMoves = parser.Moves();
-                    std::cout << "Num aftermath moves: " << aftermathMoves.size() << std::endl;
                     Colour* territories = GetFinalTerritories(moves, aftermathMoves);
+
+                    // The final ownership map is known. Use this to generate the training data.
+                    Board board(19);
+                    for (const Move& m : moves)
+                    {
+                        board.MakeMove(m);
+                        Save(board, territories);
+                    }
+
                     delete[] territories;
                 }
                 else
@@ -59,6 +67,62 @@ public:
     }
 
 private:
+    void Save(const Board& board, Colour* territories)
+    {
+        std::string input = GetInputString(board, board.ColourToMove());
+        std::string output = GetOutputString(territories, board.ColourToMove());
+        for (int i = 0; i <= 8 ; i++)
+        {
+            int fileToUse = rand() % _inputs.size();
+            SaveInputs(input, fileToUse);
+            SaveOutputs(output, fileToUse);
+
+          //PrintBoard(input);
+          //PrintBoard(output);
+
+            if (i % 4)
+            {
+                input = Rotate(input);
+                output = Rotate(output);
+            }
+            else
+            {
+                input = Flip(input);
+                output = Flip(output);
+            }
+        }
+    }
+
+    void SaveInputs(const std::string& input, int targetIndex)
+    {
+        _inputs[targetIndex] << input << std::endl;
+    }
+
+    void SaveOutputs(const std::string& output, int targetIndex)
+    {
+        _outputs[targetIndex] << output << std::endl;
+    }
+
+    std::string GetOutputString(Colour* territory, Colour colourToMove)
+    {
+        std::string output;
+        for (int r = 0; r < 19; r++)
+        {
+            std::string row;
+            for (int c = 0; c < 19; c++)
+            {
+                Colour col = territory[19*r+c];
+                row += col == colourToMove ? 'P'
+                    : col != None ? 'O'
+                    : 'x';
+            }
+
+            output += row;
+        }
+
+        return output;
+    }
+
     Colour* GetFinalTerritories(const std::vector<Move>& gameMoves, const std::vector<Move>& aftermathMoves) const
     {
         Board board(19);
@@ -105,6 +169,18 @@ private:
         PrintColours(cols);
 
         return cols;
+    }
+
+    void PrintBoard(const std::string& board) const
+    {
+        std::string out(board);
+        for (int i = 18; i > 0; i--)
+        {
+            out.insert(19*i, "\n");
+        }
+
+        std::cout << out << std::endl;
+        std::cout << std::endl;
     }
 
     void PrintColours(Colour* colours) const

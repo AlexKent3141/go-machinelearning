@@ -98,6 +98,10 @@ typedef enum{
     SSE, MASKED, L1, SEG, SMOOTH,WGAN
 } COST_TYPE;
 
+typedef enum{
+    TOPK, ERROR
+} ACCURACY_TYPE;
+
 typedef struct{
     int batch;
     float learning_rate;
@@ -661,6 +665,7 @@ data copy_data(data d);
 data concat_data(data d1, data d2);
 data load_cifar10_data(char *filename);
 float matrix_topk_accuracy(matrix truth, matrix guess, int k);
+float matrix_error_accuracy(matrix truth, matrix guess);
 void matrix_add_matrix(matrix from, matrix to);
 void scale_matrix(matrix m, float scale);
 matrix csv_to_matrix(char *filename);
@@ -725,6 +730,7 @@ void flip_image(image a);
 image float_to_image(int w, int h, int c, float *data);
 void ghost_image(image source, image dest, int dx, int dy);
 float network_accuracy(network *net, data d);
+float network_assess(network *net, data d, ACCURACY_TYPE t);
 void random_distort_image(image im, float hue, float saturation, float exposure);
 void fill_image(image m, float s);
 image grayscale_image(image im);

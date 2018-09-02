@@ -45,9 +45,6 @@ public:
     }
 
 private:
-    std::vector<std::ofstream> _inputs;
-    std::vector<std::ofstream> _outputs;
-
     void Save(const Board& board, const Move& nextMove)
     {
         std::string input = GetInputString(board, nextMove.Col);
@@ -71,27 +68,6 @@ private:
                 next = Flip(next);
             }
         }
-    }
-
-    std::string GetInputString(const Board& board, int colourToMove)
-    {
-        std::string inputs;
-        for (int r = 0; r < 19; r++)
-        {
-            std::string row;
-            for (int c = 0; c < 19; c++)
-            {
-                Colour col = board.PointColour(19*r+c);
-                row += col == colourToMove ? 'P'
-                    : col != None ? 'O'
-                    : (board.CheckMove(19*r + c) & Legal) ? '.'
-                    : 'x';
-            }
-
-            inputs += row;
-        }
-
-        return inputs;
     }
 
     void SaveInputs(const std::string& input, int targetIndex)
