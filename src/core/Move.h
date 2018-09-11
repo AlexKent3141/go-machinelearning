@@ -25,6 +25,13 @@ struct Move
     {
         return !(*this == other);
     }
+
+    bool Valid(int boardSize) const
+    {
+        int r = Coord / boardSize;
+        int c = Coord % boardSize;
+        return Coord == PassCoord || (r >= 0 && r < boardSize && c >= 0 && c < boardSize);
+    }
 };
 
 // This represents an invalid move.

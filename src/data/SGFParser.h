@@ -69,7 +69,7 @@ private:
 
     std::string RemoveBrackets(const std::string&) const;
     std::string RemoveLineBreaks(const std::string&) const;
-    void ParseKeyValuePair(const std::string&, const std::string&);
+    bool ParseKeyValuePair(const std::string&, const std::string&);
     Move ParseMove(Colour, const std::string&) const;
     bool IsKey(const std::string&) const;
 };

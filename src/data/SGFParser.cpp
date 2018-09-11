@@ -10,6 +10,8 @@ SGFParser::SGFParser()
 bool SGFParser::Parse(const std::string& sgf)
 {
     bool validFile = true;
+    _handicap = 0;
+
     std::ifstream s(sgf);
 
     // Get all of the data from the file.
@@ -45,7 +47,7 @@ bool SGFParser::Parse(const std::string& sgf)
             }
             else
             {
-                ParseKeyValuePair(prevKey, token);
+                validFile &= ParseKeyValuePair(prevKey, token);
             }
         }
         else
@@ -54,7 +56,7 @@ bool SGFParser::Parse(const std::string& sgf)
         }
 
         // Not interested in handicap games.
-        validFile |= _handicap == 0;
+        validFile &= _handicap == 0;
     }
 
     return validFile;
@@ -76,9 +78,14 @@ std::string SGFParser::RemoveLineBreaks(const std::string& s) const
     return res;
 }
 
-void SGFParser::ParseKeyValuePair(const std::string& key, const std::string& value)
+bool SGFParser::ParseKeyValuePair(const std::string& key, const std::string& value)
 {
-    if (value == "" || value == "(" || value == ")") return;
+    bool valid = true;
+    if (value == "" || value == "(" || value == ")")
+    {
+        // Just skip this.
+        return valid;
+    }
 
     if (key == KeySize)
     {
@@ -134,11 +141,27 @@ void SGFParser::ParseKeyValuePair(const std::string& key, const std::string& val
     }
     else if (key == KeyBlackMove)
     {
-        _moves.push_back(ParseMove(Black, value));
+        Move m = ParseMove(Black, value);
+        if (m.Valid(_boardSize))
+        {
+            _moves.push_back(m);
+        }
+        else
+        {
+            valid = false;
+        }
     }
     else if (key == KeyWhiteMove)
     {
-        _moves.push_back(ParseMove(White, value));
+        Move m = ParseMove(White, value);
+        if (m.Valid(_boardSize))
+        {
+            _moves.push_back(m);
+        }
+        else
+        {
+            valid = false;
+        }
     }
     else if (key == KeyWhiteTeam)
     {
@@ -180,6 +203,8 @@ void SGFParser::ParseKeyValuePair(const std::string& key, const std::string& val
     {
         std::cout << "Unidentified key: " << key << " " << value << std::endl;
     }
+
+    return valid;
 }
 
 Move SGFParser::ParseMove(Colour col, const std::string& loc) const

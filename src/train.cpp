@@ -14,6 +14,8 @@ const std::string& inputFile = "input";
 const std::string& outputFile = "output";
 const std::string& DataExt = ".dat";
 
+const double ValueInitialError = 1000;
+
 data GetGoData(int fileIndex, const std::string& dataFolder, bool value)
 {
     std::string inputFileName = dataFolder + "/" + inputFile + std::to_string(fileIndex) + DataExt;
@@ -70,6 +72,7 @@ int main(int argc, char** argv)
     // Train.
     ACCURACY_TYPE acc = valueData ? ERROR : TOPK;
     double bestAccuracy = network_assess(net, test, acc);
+    //double bestAccuracy = acc == ERROR ? ValueInitialError : network_assess(net, test, acc);
     std::cout << "Initial accuracy: " << bestAccuracy << std::endl;
     while ((int)get_current_batch(net) < net->max_batches || net->max_batches == 0)
     {

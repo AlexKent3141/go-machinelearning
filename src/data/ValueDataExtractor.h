@@ -38,17 +38,31 @@ public:
                 if (parser.Parse(tempPath2))
                 {
                     const std::vector<Move>& aftermathMoves = parser.Moves();
-                    Colour* territories = GetFinalTerritories(moves, aftermathMoves);
-
-                    // The final ownership map is known. Use this to generate the training data.
-                    Board board(19);
-                    for (const Move& m : moves)
+                    if (aftermathMoves.size() < 80)
                     {
-                        board.MakeMove(m);
-                        Save(board, territories);
-                    }
+                        Colour* territories = GetFinalTerritories(moves, aftermathMoves);
+                        if (territories != nullptr)
+                        {
+                            // The final ownership map is known.
+                            // Use this to generate the training data.
+                            Board board(19);
+                            for (const Move& m : moves)
+                            {
+                                board.MakeMove(m);
+                                Save(board, territories);
+                            }
 
-                    delete[] territories;
+                            delete[] territories;
+                        }
+                        else
+                        {
+                            std::cout << "Skipping game: illegal move detected." << std::endl;
+                        }
+                    }
+                    else
+                    {
+                        std::cout << "Omitting incomplete game record." << std::endl;
+                    }
                 }
                 else
                 {
@@ -126,8 +140,18 @@ private:
     Colour* GetFinalTerritories(const std::vector<Move>& gameMoves, const std::vector<Move>& aftermathMoves) const
     {
         Board board(19);
-        for (const Move& m : gameMoves) board.MakeMove(m);
-        for (const Move& m : aftermathMoves) board.MakeMove(m);
+        for (const Move& m : gameMoves)
+        {
+            if (!(board.CheckMove(m.Col, m.Coord) & Legal)) return nullptr;
+            board.MakeMove(m);
+        }
+
+        for (const Move& m : aftermathMoves)
+        {
+            if (!(board.CheckMove(m.Col, m.Coord) & Legal)) return nullptr;
+            board.MakeMove(m);
+        }
+
         return Score(board);
     }
 
@@ -211,7 +235,8 @@ private:
 
     bool WentToCounting(const std::string& result) const
     {
-        return result.size() > 2 && IsDouble(result.substr(2));
+        // Impose an upper bound on the string size (need to omit incomplete games).
+        return result.size() > 2 && result.size() < 6 && IsDouble(result.substr(2));
     }
 
     Colour GetWinner(const std::string& result) const
