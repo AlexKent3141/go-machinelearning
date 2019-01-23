@@ -1,5 +1,7 @@
 #include "Network.h"
 #include "../data/PrepareData.h"
+#include "../data/DataType.h"
+#include <iostream>
 
 Network::~Network()
 {
@@ -27,6 +29,8 @@ std::vector<double> Network::GetOutput(const Board& board)
 
     delete[] inputs;
 
+    std::cout << "Win prediction: " << pred[361] << std::endl;
+
     return outputs;
 }
 
@@ -47,5 +51,5 @@ void Network::GetInputs(const Board& board, float* inputs) const
         rep += row;
     }
 
-    GetRow(inputs, nullptr, rep, "", 0);
+    GetRow(inputs, nullptr, rep, "", MoveValue);
 }

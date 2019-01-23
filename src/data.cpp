@@ -1,7 +1,9 @@
 #include "data/DataExtractor.h"
 #include "data/MoveDataExtractor.h"
+#include "data/MoveValueDataExtractor.h"
 #include "data/ValueDataExtractor.h"
 #include "data/SGFParser.h"
+#include "data/DataType.h"
 #include "dirent.h"
 #include <algorithm>
 #include <iostream>
@@ -50,7 +52,7 @@ std::vector<std::string> GetGameFiles(const std::string& dirPath, int earliestYe
 
 int main(int argc, char** argv)
 {
-    bool valueData = false;
+    DataType dataType = Move;
     if (argc < 2)
     {
         std::cout << "No games folder specified" << std::endl;
@@ -61,20 +63,34 @@ int main(int argc, char** argv)
     {
         std::cout << "No data type specified: defaulting to move data" << std::endl;
     }
-    else
+    else if (std::string(argv[2]) == "value")
     {
-        valueData = std::string(argv[2]) == "value";
+        dataType = Value;
+    }
+    else if (std::string(argv[2]) == "move_value")
+    {
+        dataType = MoveValue;
     }
 
     auto dir = std::string(argv[1]);
     auto fileNames = GetGameFiles(dir, 2000);
 
     SGFParser parser;
-    DataExtractor* extractor = valueData
-        ? (DataExtractor*)new ValueDataExtractor("go_data", fileNames.size())
-        : (DataExtractor*)new MoveDataExtractor("go_data", fileNames.size());
+    DataExtractor* extractor;
+    switch (dataType)
+    {
+        case Move:
+            extractor = (DataExtractor*)new MoveDataExtractor("go_data", fileNames.size());
+            break;
+        case Value:
+            extractor = (DataExtractor*)new ValueDataExtractor("go_data", fileNames.size());
+            break;
+        case MoveValue:
+            extractor = (DataExtractor*)new MoveValueDataExtractor("go_data", fileNames.size());
+            break;
+    }
 
-    for (size_t i = 0; fileNames.size(); i++)
+    for (size_t i = 0; i < fileNames.size(); i++)
     {
         std::string file = fileNames[i];
         std::cout << "Parsing file " << i << "/" << fileNames.size() << " " << file << std::endl;

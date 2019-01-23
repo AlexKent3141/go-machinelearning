@@ -6,6 +6,8 @@ extern "C"
     #include "../darknet/darknet.h"
 }
 
+#include "DataType.h"
+#include <cassert>
 #include <fstream>
 #include <string>
 #include <iostream>
@@ -45,7 +47,7 @@ inline void GetTerritoryOutput(float* out, const std::string& output)
     }
 }
 
-inline void GetRow(float* in, float* out, const std::string& input, const std::string& output, bool value)
+inline void GetRow(float* in, float* out, const std::string& input, const std::string& output, DataType dataType)
 {
     if (in != nullptr)
     {
@@ -57,26 +59,34 @@ inline void GetRow(float* in, float* out, const std::string& input, const std::s
 
     if (out != nullptr)
     {
-        if (value)
+        switch (dataType)
         {
-            // Output the territory distribution. This is just one plane.
-            GetTerritoryOutput(out, output);
-        }
-        else
-        {
-            // Just turn on the move location.
-            out[stoi(output)] = 1;
+            case Value:
+                // Output the territory distribution. This is just one plane.
+                GetTerritoryOutput(out, output);
+                break;
+            case Move:
+                // Just turn on the move location.
+                out[stoi(output)] = 1;
+                break;
+            case MoveValue:
+                // The output consists of the move location and win/loss separated by a space.
+                std::string loc = output.substr(0, output.size()-2);
+                out[stoi(loc)] = 1;
+                out[361] = output.back() == '1';
+                break;
         }
     }
 }
-inline void GetRow(int i, matrix* in, matrix* out, const std::string& input, const std::string& output, bool value)
+
+inline void GetRow(int i, matrix* in, matrix* out, const std::string& input, const std::string& output, DataType dataType)
 {
-    GetRow(in->vals[i], out->vals[i], input, output, value);
+    GetRow(in->vals[i], out->vals[i], input, output, dataType);
 }
 
 // Extract the examples from the specified files and apply the specified padding in x & y.
 // Note: The padding is applied all the way around the board.
-inline data GetData(const std::string& inputsFile, const std::string& labelsFile, bool value)
+inline data GetData(const std::string& inputsFile, const std::string& labelsFile, DataType dataType)
 {
     // Initially find the number of lines in the file.
     std::string l;
@@ -90,8 +100,9 @@ inline data GetData(const std::string& inputsFile, const std::string& labelsFile
 
     const int NumPlanes = 3;
     int boardArea = 19*19;
+    int outputSize = dataType == MoveValue ? boardArea+1 : boardArea;
     matrix in = make_matrix(n, NumPlanes*boardArea);
-    matrix out = make_matrix(n, 361);
+    matrix out = make_matrix(n, outputSize);
 
     // The inputs and label for a specified example.
     int i = 0;
@@ -108,7 +119,8 @@ inline data GetData(const std::string& inputsFile, const std::string& labelsFile
             {
                 std::string output;
                 std::getline(labels, output);
-                GetRow(i++, &in, &out, input, output, value);
+                assert(!output.empty());
+                GetRow(i++, &in, &out, input, output, dataType);
             }
         }
         while (hasData);

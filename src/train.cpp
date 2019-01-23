@@ -5,6 +5,7 @@ extern "C"
 }
 
 #include "data/PrepareData.h"
+#include "data/DataType.h"
 #include <iostream>
 
 #include <cassert>
@@ -16,14 +17,14 @@ const std::string& DataExt = ".dat";
 
 const double ValueInitialError = 1000;
 
-data GetGoData(int fileIndex, const std::string& dataFolder, bool value)
+data GetGoData(int fileIndex, const std::string& dataFolder, DataType dataType)
 {
     std::string inputFileName = dataFolder + "/" + inputFile + std::to_string(fileIndex) + DataExt;
     std::string outputFileName = dataFolder + "/" + outputFile + std::to_string(fileIndex) + DataExt;
 
     std::cout << "Loading data: " << inputFileName << " " << outputFileName << std::endl;
 
-    data d = GetData(inputFileName, outputFileName, value);
+    data d = GetData(inputFileName, outputFileName, dataType);
     d.shallow = 0;
 
     std::cout << "Num examples found: " << d.X.rows << std::endl;
@@ -43,7 +44,7 @@ int main(int argc, char** argv)
 {
     srand(time(NULL));
 
-    bool valueData = false;
+    DataType dataType = Move;
     if (argc < 3)
     {
         std::cout << "Missing arguments." << std::endl;
@@ -55,31 +56,35 @@ int main(int argc, char** argv)
     {
         std::cout << "No data type specified: defaulting to move data" << std::endl;
     }
-    else
+    else if (std::string(argv[3]) == "value")
     {
-        valueData = std::string(argv[3]) == "value";
+        dataType = Value;
+    }
+    else if (std::string(argv[3]) == "move_value")
+    {
+        dataType = MoveValue;
     }
 
     std::string dataFolder(argv[1]);
     int maxFileIndex = atoi(argv[2]);
 
     // Reserve the last data file for testing.
-    data test = GetGoData(maxFileIndex, dataFolder, valueData);
+    data test = GetGoData(maxFileIndex, dataFolder, dataType);
 
     // Construct the network.
-    network* net = load_network((char*)"net.cfg", (char*)"test_weights", 0);
+    network* net = load_network((char*)"net.cfg", NULL, 0);//(char*)"test_weights", 0);
 
     // Train.
-    ACCURACY_TYPE acc = valueData ? ERROR : TOPK;
-    double bestAccuracy = network_assess(net, test, acc);
-    //double bestAccuracy = acc == ERROR ? ValueInitialError : network_assess(net, test, acc);
+    ACCURACY_TYPE acc = dataType == Value ? ERROR : TOPK;
+    //double bestAccuracy = network_assess(net, test, acc);
+    double bestAccuracy = acc == ERROR ? ValueInitialError : network_assess(net, test, acc);
     std::cout << "Initial accuracy: " << bestAccuracy << std::endl;
     while ((int)get_current_batch(net) < net->max_batches || net->max_batches == 0)
     {
         for (int t = 0; t < maxFileIndex; t++)
         {
             // Get the next training data set.
-            data training = GetGoData(t, dataFolder, valueData);
+            data training = GetGoData(t, dataFolder, dataType);
             training.X.rows -= training.X.rows % net->batch;
 
             float loss = train_network(net, training);
@@ -96,8 +101,8 @@ int main(int argc, char** argv)
                 std::cout << "Testing..." << std::endl;
                 float testAccuracy = network_assess(net, test, acc);
                 std::cout << "Test accuracy: " << testAccuracy << std::endl;
-                if ((valueData && testAccuracy < bestAccuracy) ||
-                   (!valueData && testAccuracy > bestAccuracy))
+                if ((acc == ERROR && testAccuracy < bestAccuracy) ||
+                    (acc == TOPK && testAccuracy > bestAccuracy))
                 {
                     save_weights(net, (char*)"test_weights");
                     std::cout << "Promoted" << std::endl;

@@ -111,6 +111,13 @@ protected:
         int y = loc / 19;
         return 19*(18-x) + y;
     }
+
+    Colour GetWinner(const std::string& result) const
+    {
+        return result[0] == 'B' ? Black
+             : result[0] == 'W' ? White
+             : None;
+    }
 };
 
 #endif // __DATA_EXTRACTOR_H__

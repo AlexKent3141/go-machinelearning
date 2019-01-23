@@ -239,13 +239,6 @@ private:
         return result.size() > 2 && result.size() < 6 && IsDouble(result.substr(2));
     }
 
-    Colour GetWinner(const std::string& result) const
-    {
-        return result[0] == 'B' ? Black
-             : result[0] == 'W' ? White
-             : None;
-    }
-
     bool IsDouble(const std::string& s) const
     {
         bool isDouble = true;
