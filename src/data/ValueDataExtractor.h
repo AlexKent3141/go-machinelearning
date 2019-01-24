@@ -1,11 +1,15 @@
 #ifndef __VALUE_DATA_EXTRACTOR_H__
 #define __VALUE_DATA_EXTRACTOR_H__
 
-#include "DataExtractor.h"
-#include "SGFParser.h"
-#include <iostream>
+#include "../core/Board.h"
+#include <cassert>
 #include <cstdlib>
+#include <fstream>
+#include <iostream>
+#include <string>
+#include <vector>
 
+// This object extracts the data from a game of Go.
 class ValueDataExtractor : public DataExtractor
 {
 public:
@@ -16,93 +20,51 @@ public:
 
     void Generate(const std::vector<Move>& moves, const std::string& result, const std::string& sgfFilePath)
     {
-        // First verify whether the game ended with counting.
-        // The expected format in this case is: colour + margin e.g. B+0.5 or W+5.5
-        std::cout << "Result: " << result << std::endl;
-        if (WentToCounting(result))
+        Board board(19);
+        Colour player = Black;
+        Colour winner = GetWinner(result);
+        for (size_t i = 0; i < moves.size(); i++)
         {
-            // My plan is to:
-            // - Make a temporary copy of the sgf file.
-            // - Use GnuGo to play out the game further so position is easier to score.
-            // - Call a custom scoring routine which can deal with the "easy" final position.
-            const std::string& tempPath1 = "./temp1.sgf";
-            const std::string& tempPath2 = "./temp2.sgf";
-            CopyFile(sgfFilePath, tempPath1);
-            
-            const std::string& gnugoAftermath =
-                "gnugo --score aftermath --capture-all-dead -l " + tempPath1 + " -o " + tempPath2;
-
-            if (system(gnugoAftermath.c_str()) >= 0)
+            const Move& move = moves[i];
+            MoveInfo info = board.CheckMove(move.Coord);
+            if (info & Legal)
             {
-                SGFParser parser;
-                if (parser.Parse(tempPath2))
+                board.MakeMove(move);
+                if (i < moves.size() - 1)
                 {
-                    const std::vector<Move>& aftermathMoves = parser.Moves();
-                    if (aftermathMoves.size() < 80)
+                    const Move& nextMove = moves[i+1];
+                    if (nextMove.Coord != PassCoord)
                     {
-                        Colour* territories = GetFinalTerritories(moves, aftermathMoves);
-                        if (territories != nullptr)
-                        {
-                            // The final ownership map is known.
-                            // Use this to generate the training data.
-                            Board board(19);
-                            for (const Move& m : moves)
-                            {
-                                board.MakeMove(m);
-                                Save(board, territories);
-                            }
-
-                            delete[] territories;
-                        }
-                        else
-                        {
-                            std::cout << "Skipping game: illegal move detected." << std::endl;
-                        }
+                        Save(board, player, player == winner);
                     }
-                    else
-                    {
-                        std::cout << "Omitting incomplete game record." << std::endl;
-                    }
-                }
-                else
-                {
-                    std::cout << "Failed to parse aftermath file." << std::endl;
                 }
             }
             else
             {
-                std::cout << "Error occurred when running gnugo." << std::endl;
+                assert("Illegal move!");
             }
-        }
-        else
-        {
-            std::cout << "Did not go to counting." << std::endl;
+
+            player = player == Black ? White : Black;
         }
     }
 
 private:
-    void Save(const Board& board, Colour* territories)
+    void Save(const Board& board, Colour playerToMove, bool win)
     {
-        std::string input = GetInputString(board, board.ColourToMove());
-        std::string output = GetOutputString(territories, board.ColourToMove());
-        for (int i = 0; i <= 8 ; i++)
+        std::string input = GetInputString(board, playerToMove);
+        for (int i = 1; i <= 8; i++)
         {
             int fileToUse = rand() % _inputs.size();
             SaveInputs(input, fileToUse);
-            SaveOutputs(output, fileToUse);
-
-          //PrintBoard(input);
-          //PrintBoard(output);
+            SaveOutputs(win, fileToUse);
 
             if (i % 4)
             {
                 input = Rotate(input);
-                output = Rotate(output);
             }
             else
             {
                 input = Flip(input);
-                output = Flip(output);
             }
         }
     }
@@ -112,151 +74,21 @@ private:
         _inputs[targetIndex] << input << std::endl;
     }
 
-    void SaveOutputs(const std::string& output, int targetIndex)
+    void SaveOutputs(int win, int targetIndex)
     {
-        _outputs[targetIndex] << output << std::endl;
+        _outputs[targetIndex] << win << std::endl;
     }
 
-    std::string GetOutputString(Colour* territory, Colour colourToMove)
+    void PrintBoard(const std::string& input, int next) const
     {
-        std::string output;
-        for (int r = 0; r < 19; r++)
-        {
-            std::string row;
-            for (int c = 0; c < 19; c++)
-            {
-                Colour col = territory[19*r+c];
-                row += col == colourToMove ? 'P'
-                    : col != None ? 'O'
-                    : 'x';
-            }
-
-            output += row;
-        }
-
-        return output;
-    }
-
-    Colour* GetFinalTerritories(const std::vector<Move>& gameMoves, const std::vector<Move>& aftermathMoves) const
-    {
-        Board board(19);
-        for (const Move& m : gameMoves)
-        {
-            if (!(board.CheckMove(m.Col, m.Coord) & Legal)) return nullptr;
-            board.MakeMove(m);
-        }
-
-        for (const Move& m : aftermathMoves)
-        {
-            if (!(board.CheckMove(m.Col, m.Coord) & Legal)) return nullptr;
-            board.MakeMove(m);
-        }
-
-        return Score(board);
-    }
-
-    Colour* Score(const Board& board) const
-    {
-        std::cout << board.ToString() << std::endl;
-
-        Colour* cols = new Colour[361];
-
-        // Initially set the colours of points which have stones.
-        for (int loc = 0; loc < 361; loc++) cols[loc] = board.PointColour(loc);
-
-        // Iteratively fill in the colours of other uncoloured points.
-        // A maximum of 19 iterations are required to colour all possible points.
-        const int BoardSize = 19;
-        int colCount[3] = {};
-        for (int i = 0; i < BoardSize; i++)
-        {
-            for (int loc = 0; loc < 361; loc++)
-            {
-                if (cols[loc] == None)
-                {
-                    // Does only one colour neighbour this point?
-                    memset(colCount, 0, 3*sizeof(int));
-                    
-                    int x = loc % BoardSize;
-                    int y = loc / BoardSize;
-                    if (x > 0)           ++colCount[cols[BoardSize*y + x-1]];
-                    if (x < BoardSize-1) ++colCount[cols[BoardSize*y + x+1]];
-                    if (y > 0)           ++colCount[cols[BoardSize*(y-1) + x]];
-                    if (y < BoardSize-1) ++colCount[cols[BoardSize*(y+1) + x]];
-
-                    if (colCount[Black] > 0 && colCount[White] == 0) cols[loc] = Black;
-                    else if (colCount[Black] == 0 && colCount[White] > 0) cols[loc] = White;
-                }
-            }
-        }
-
-        PrintColours(cols);
-
-        return cols;
-    }
-
-    void PrintBoard(const std::string& board) const
-    {
-        std::string out(board);
+        std::string test(input);
         for (int i = 18; i > 0; i--)
         {
-            out.insert(19*i, "\n");
+            test.insert(19*i, "\n");
         }
 
-        std::cout << out << std::endl;
+        std::cout << test << std::endl;
         std::cout << std::endl;
-    }
-
-    void PrintColours(Colour* colours) const
-    {
-        std::string s;
-
-        for (int r = 18; r >= 0; r--)
-        {
-            for (int c = 0; c < 19; c++)
-            {
-                Colour col = colours[19*r+c];
-                s += col == Black ? 'B' : col == White ? 'W' : 'X';
-            }
-
-            s += '\n';
-        }
-
-        std::cout << s << std::endl;
-        std::cout << std::endl;
-    }
-
-    void CopyFile(const std::string& source, const std::string& dest) const
-    {
-        std::ifstream src(source, std::ios::binary);
-        std::ofstream dst(dest, std::ios::binary);
-        dst << src.rdbuf();
-    }
-
-    bool WentToCounting(const std::string& result) const
-    {
-        // Impose an upper bound on the string size (need to omit incomplete games).
-        return result.size() > 2 && result.size() < 6 && IsDouble(result.substr(2));
-    }
-
-    bool IsDouble(const std::string& s) const
-    {
-        bool isDouble = true;
-        try
-        {
-            stod(s);
-        }
-        catch (...)
-        {
-            isDouble = false;
-        }
-
-        return isDouble;
-    }
-
-    std::string GetScores()
-    {
-        return "";
     }
 };
 

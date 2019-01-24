@@ -64,6 +64,10 @@ int main(int argc, char** argv)
     {
         dataType = MoveValue;
     }
+    else if (std::string(argv[3]) == "territory")
+    {
+        dataType = Territory;
+    }
 
     std::string dataFolder(argv[1]);
     int maxFileIndex = atoi(argv[2]);
@@ -72,10 +76,10 @@ int main(int argc, char** argv)
     data test = GetGoData(maxFileIndex, dataFolder, dataType);
 
     // Construct the network.
-    network* net = load_network((char*)"net.cfg", NULL, 0);//(char*)"test_weights", 0);
+    network* net = load_network((char*)"net.cfg", (char*)"test_weights", 0);
 
     // Train.
-    ACCURACY_TYPE acc = dataType == Value ? ERROR : TOPK;
+    ACCURACY_TYPE acc = dataType == Territory ? ERROR : TOPK;
     //double bestAccuracy = network_assess(net, test, acc);
     double bestAccuracy = acc == ERROR ? ValueInitialError : network_assess(net, test, acc);
     std::cout << "Initial accuracy: " << bestAccuracy << std::endl;

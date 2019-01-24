@@ -2,6 +2,7 @@
 #include "data/MoveDataExtractor.h"
 #include "data/MoveValueDataExtractor.h"
 #include "data/ValueDataExtractor.h"
+#include "data/TerritoryDataExtractor.h"
 #include "data/SGFParser.h"
 #include "data/DataType.h"
 #include "dirent.h"
@@ -71,6 +72,10 @@ int main(int argc, char** argv)
     {
         dataType = MoveValue;
     }
+    else if (std::string(argv[2]) == "territory")
+    {
+        dataType = Territory;
+    }
 
     auto dir = std::string(argv[1]);
     auto fileNames = GetGameFiles(dir, 2000);
@@ -87,6 +92,9 @@ int main(int argc, char** argv)
             break;
         case MoveValue:
             extractor = (DataExtractor*)new MoveValueDataExtractor("go_data", fileNames.size());
+            break;
+        case Territory:
+            extractor = (DataExtractor*)new TerritoryDataExtractor("go_data", fileNames.size());
             break;
     }
 

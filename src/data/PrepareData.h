@@ -61,13 +61,18 @@ inline void GetRow(float* in, float* out, const std::string& input, const std::s
     {
         switch (dataType)
         {
-            case Value:
+            case Territory:
                 // Output the territory distribution. This is just one plane.
                 GetTerritoryOutput(out, output);
                 break;
             case Move:
                 // Just turn on the move location.
                 out[stoi(output)] = 1;
+                break;
+            case Value:
+                // There are two outputs which encode the probability of each player winning.
+                out[0] = output[0] - 48;
+                out[1] = 49 - output[0];
                 break;
             case MoveValue:
                 // The output consists of the move location and win/loss separated by a space.
@@ -100,7 +105,11 @@ inline data GetData(const std::string& inputsFile, const std::string& labelsFile
 
     const int NumPlanes = 3;
     int boardArea = 19*19;
-    int outputSize = dataType == MoveValue ? boardArea+1 : boardArea;
+    int outputSize = dataType == MoveValue ? boardArea+1
+                   : dataType == Move ? boardArea
+                   : dataType == Value ? 2
+                   : boardArea;
+
     matrix in = make_matrix(n, NumPlanes*boardArea);
     matrix out = make_matrix(n, outputSize);
 

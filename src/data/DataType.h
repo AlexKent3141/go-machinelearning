@@ -5,7 +5,8 @@ enum DataType
 {
     Move,
     MoveValue,
-    Value
+    Value,
+    Territory
 };
 
 #endif // __DATA_TYPE_H__
