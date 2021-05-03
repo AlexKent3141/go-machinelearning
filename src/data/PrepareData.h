@@ -33,17 +33,12 @@ inline void AddPlane(int p,  float* in, const std::string& input, char featureTy
 
 inline void GetTerritoryOutput(float* out, const std::string& output)
 {
-    float total = 0.0;
-    for (int i = 0; i < 19*19; i++)
+    // To get back to probabilities multiply the outputs by 180.5.
+    for (int i = 0; i < 361; i++)
     {
         char c = output[i];
         out[i] = c == 'P' ? 1 : c == 'O' ? 0 : 0.5;
-        total += out[i];
-    }
-
-    for (int i = 0; i < 19*19; i++)
-    {
-        out[i] /= total;
+        out[i] /= 180.5f;
     }
 }
 

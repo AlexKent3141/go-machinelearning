@@ -2,6 +2,8 @@ extern "C"
 {
     #include "darknet/darknet.h"
     #include "darknet/data.h"
+    #include "darknet/network.h"
+    #include "darknet/parser.h"
 }
 
 #include "data/PrepareData.h"
@@ -16,6 +18,40 @@ const std::string& outputFile = "output";
 const std::string& DataExt = ".dat";
 
 const double ValueInitialError = 1000;
+
+// The average proportion of points that are predicted correctly.
+float matrix_territory_accuracy(matrix truth, matrix guess)
+{
+    const float SCALE = 180.5f;
+    int i, j, correct = 0;
+    float target, guessed;
+    for (i = 0; i < truth.rows; ++i)
+    {
+        for (j = 0; j < truth.cols; j++)
+        {
+            // Get back to proportions.
+            target = truth.vals[i][j] * SCALE;
+            guessed = guess.vals[i][j] * SCALE;
+
+            if ((target > 0.5f && guessed > 0.5f)
+             || (target < 0.5f && guessed < 0.5f))
+            {
+                ++correct;
+            }
+        }
+    }
+
+    return correct / (361.0f * truth.rows);
+}
+
+float matrix_multi_topk_accuracy(matrix truth, matrix guess, int n)
+{
+    float top1 = matrix_topk_accuracy(truth, guess, 1);
+    float topn = matrix_topk_accuracy(truth, guess, n);
+    std::cout << "Top1: " << top1 << std::endl;
+    std::cout << "TopN: " << topn << std::endl;
+    return top1;
+}
 
 data GetGoData(int fileIndex, const std::string& dataFolder, DataType dataType)
 {
@@ -76,14 +112,17 @@ int main(int argc, char** argv)
     data test = GetGoData(maxFileIndex, dataFolder, dataType);
 
     // Construct the network.
-    network* net = load_network((char*)"net.cfg", (char*)"test_weights", 0);
+    network* net = load_network((char*)"net.cfg", NULL, 0);
+  //network* net = load_network((char*)"net.cfg", (char*)"test_weights", 0);
 
     // Train.
-    ACCURACY_TYPE acc = dataType == Territory ? ERROR : TOPK;
-    //double bestAccuracy = network_assess(net, test, acc);
-    double bestAccuracy = acc == ERROR ? ValueInitialError : network_assess(net, test, acc);
+    matrix guess = network_predict_data(*net, test);
+    double bestAccuracy = dataType == Territory
+        ? matrix_territory_accuracy(test.y, guess)
+        : matrix_multi_topk_accuracy(test.y, guess, 5);
+
     std::cout << "Initial accuracy: " << bestAccuracy << std::endl;
-    while ((int)get_current_batch(net) < net->max_batches || net->max_batches == 0)
+    while ((int)get_current_batch(*net) < net->max_batches || net->max_batches == 0)
     {
         for (int t = 0; t < maxFileIndex; t++)
         {
@@ -91,8 +130,8 @@ int main(int argc, char** argv)
             data training = GetGoData(t, dataFolder, dataType);
             training.X.rows -= training.X.rows % net->batch;
 
-            float loss = train_network(net, training);
-            std::cout << loss << std::endl;
+            float loss = train_network(*net, training);
+            std::cout << "Loss: " << loss << std::endl;
 
             free_data(training);
 
@@ -100,15 +139,19 @@ int main(int argc, char** argv)
             if (t % 10 == 0)
             {
                 // Test and promote if it's an improvement.
-                // Note: If using the TOPK accuracy type then higher accuracy is better, but if it's
-                // the ERROR type then it needs to be minimised...
                 std::cout << "Testing..." << std::endl;
-                float testAccuracy = network_assess(net, test, acc);
-                std::cout << "Test accuracy: " << testAccuracy << std::endl;
-                if ((acc == ERROR && testAccuracy < bestAccuracy) ||
-                    (acc == TOPK && testAccuracy > bestAccuracy))
+
+                matrix guess = network_predict_data(*net, test);
+
+                float testAccuracy = dataType == Territory
+                    ? matrix_territory_accuracy(test.y, guess)
+                    : matrix_multi_topk_accuracy(test.y, guess, 5);
+
+                std::cout << "Accuracy: " << testAccuracy << std::endl;
+
+                if (testAccuracy > bestAccuracy)
                 {
-                    save_weights(net, (char*)"test_weights");
+                    save_weights(*net, (char*)"test_weights");
                     std::cout << "Promoted" << std::endl;
                     bestAccuracy = testAccuracy;
                 }
@@ -117,7 +160,7 @@ int main(int argc, char** argv)
     }
 
     free_data(test);
-    free_network(net);
+    free_network(*net);
 
     return 0;
 }
