@@ -116,13 +116,13 @@ int main(int argc, char** argv)
   //network* net = load_network((char*)"net.cfg", (char*)"test_weights", 0);
 
     // Train.
-    matrix guess = network_predict_data(*net, test);
+    matrix guess = network_predict_data(net, test);
     double bestAccuracy = dataType == Territory
         ? matrix_territory_accuracy(test.y, guess)
         : matrix_multi_topk_accuracy(test.y, guess, 5);
 
     std::cout << "Initial accuracy: " << bestAccuracy << std::endl;
-    while ((int)get_current_batch(*net) < net->max_batches || net->max_batches == 0)
+    while ((int)get_current_batch(net) < net->max_batches || net->max_batches == 0)
     {
         for (int t = 0; t < maxFileIndex; t++)
         {
@@ -130,7 +130,7 @@ int main(int argc, char** argv)
             data training = GetGoData(t, dataFolder, dataType);
             training.X.rows -= training.X.rows % net->batch;
 
-            float loss = train_network(*net, training);
+            float loss = train_network(net, training);
             std::cout << "Loss: " << loss << std::endl;
 
             free_data(training);
@@ -141,7 +141,7 @@ int main(int argc, char** argv)
                 // Test and promote if it's an improvement.
                 std::cout << "Testing..." << std::endl;
 
-                matrix guess = network_predict_data(*net, test);
+                matrix guess = network_predict_data(net, test);
 
                 float testAccuracy = dataType == Territory
                     ? matrix_territory_accuracy(test.y, guess)
@@ -151,7 +151,7 @@ int main(int argc, char** argv)
 
                 if (testAccuracy > bestAccuracy)
                 {
-                    save_weights(*net, (char*)"test_weights");
+                    save_weights(net, (char*)"test_weights");
                     std::cout << "Promoted" << std::endl;
                     bestAccuracy = testAccuracy;
                 }
@@ -160,7 +160,7 @@ int main(int argc, char** argv)
     }
 
     free_data(test);
-    free_network(*net);
+    free_network(net);
 
     return 0;
 }
